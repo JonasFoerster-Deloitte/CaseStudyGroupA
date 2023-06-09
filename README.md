@@ -1,0 +1,2 @@
+# CaseStudyGroupA
+Wordpress website Terraform
