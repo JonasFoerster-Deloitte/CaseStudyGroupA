@@ -133,6 +133,7 @@ resource "aws_ecs_task_definition" "my_task_definition" {
         "value": "${aws_db_instance.my_rds.password}"
       }
     ],
+    "memory": 512,
     "essential": true
   }
 ]
@@ -148,12 +149,12 @@ resource "aws_ecs_service" "my_ecs_service" {
   cluster         = aws_ecs_cluster.my_ecs_cluster.id
   task_definition = aws_ecs_task_definition.my_task_definition.arn
   desired_count   = 1
+  launch_type     = "EC2"
 
-  network_configuration {
-    subnets          = [aws_subnet.subnet_a.id, aws_subnet.subnet_b.id]
-    security_groups  = [aws_security_group.my_security_group.id]
-    assign_public_ip = true
+  deployment_controller {
+    type = "ECS"
   }
+
 }
 
 # Create KMS Key for RDS Encryption
@@ -175,7 +176,7 @@ resource "aws_kms_key_policy" "my_kms_key_policy" {
         Sid       = "Enable IAM User Permissions"
         Effect    = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::123456789012:root"  # Replace with your IAM user/role ARN
+          AWS = "arn:aws:iam::238517445739:user/za-pract" 
         }
         Action    = "kms:*"
         Resource  = "*"
