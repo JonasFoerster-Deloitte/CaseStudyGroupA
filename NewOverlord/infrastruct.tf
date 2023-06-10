@@ -1,6 +1,6 @@
 # Define provider and region
 provider "aws" {
-  region = "eu-central-1"
+  region = var.region
 }
 
 # Create VPC
@@ -55,14 +55,14 @@ resource "aws_db_subnet_group" "my_subnet_group" {
 
 # Create RDS Database with Encryption
 resource "aws_db_instance" "my_rds" {
-  identifier               = "my-wordpress-db"
+  identifier               = var.database_name
   allocated_storage        = 20
   storage_type             = "gp2"
   engine                   = "mysql"
   engine_version           = "5.7"
   instance_class           = "db.m5.large"
-  username                 = "admin"
-  password                 = "password123"  
+  username                 = var.database_username
+  password                 = var.database_password
   db_subnet_group_name     = aws_db_subnet_group.my_subnet_group.name
   storage_encrypted        = true  
   kms_key_id               = aws_kms_key.my_kms_key.arn 
@@ -76,11 +76,12 @@ resource "aws_ecs_cluster" "my_ecs_cluster" {
 # Create Task Definition
 resource "aws_ecs_task_definition" "my_task_definition" {
   family                   = "my-task"
+  # docker_compose_configuration = filebase64("./docker-compose.yml")
   container_definitions    = <<DEFINITION
 [
   {
     "name": "wordpress",
-    "image": "wordpress:latest",
+    "image": "public.ecr.aws/f9b6s3n8/eks-test-repository-public:wordpress",
     "portMappings": [
       {
         "containerPort": 80,

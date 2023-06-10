@@ -2,15 +2,15 @@ version: "3.9"
     
 services:
   db:
-    image: mariadb
+    image: mysql
     volumes:
       - db_data:/var/lib/mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: somewordpress
       MYSQL_DATABASE: wordpress
-      MYSQL_USER: wordpress
-      MYSQL_PASSWORD: wordpress
+      MYSQL_USER: db_username
+      MYSQL_PASSWORD: db_password
     
   wordpress:
     depends_on:
