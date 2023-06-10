@@ -1,0 +1,35 @@
+trigger:
+  branches:
+    include:
+      - main 
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.x'
+      addToPath: true
+
+  - script: |
+      curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+      sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+      sudo apt-get update && sudo apt-get install terraform
+    displayName: 'Install Terraform'
+
+  - checkout: self
+
+  - script: |
+      terraform init
+      terraform plan -out=tfplan
+    displayName: 'Terraform Plan'
+
+  - script: |
+      terraform apply -auto-approve tfplan
+    displayName: 'Terraform Apply'
+
+  - script: |
+      terraform destroy -auto-approve
+    displayName: 'Terraform Destroy'
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))

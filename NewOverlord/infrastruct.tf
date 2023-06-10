@@ -23,7 +23,9 @@ resource "aws_subnet" "subnet_b" {
 
 # Create Security Group
 resource "aws_security_group" "my_security_group" {
-  vpc_id = aws_vpc.my_vpc.id
+  name        = "wordpress-sg"
+  description = "Allow inbound to port 80 and 22"
+  vpc_id      = aws_vpc.my_vpc.id
 
   ingress {
     from_port   = 80
@@ -76,12 +78,19 @@ resource "aws_ecs_cluster" "my_ecs_cluster" {
 # Create Task Definition
 resource "aws_ecs_task_definition" "my_task_definition" {
   family                   = "my-task"
-  # docker_compose_configuration = filebase64("./docker-compose.yml")
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256 # .256 vCPU
+  memory                   = 512 # 512 MB RAM
+  task_role_arn            = "arn:aws:iam::238517445739:role/ecsTaskExecutionRole"
+  execution_role_arn       = "arn:aws:iam::238517445739:role/ecsTaskExecutionRole"
+
+
   container_definitions    = <<DEFINITION
 [
   {
     "name": "wordpress",
-    "image": "public.ecr.aws/f9b6s3n8/eks-test-repository-public:wordpress",
+    "image": "public.ecr.aws/f9b6s3n8/nuts-and-bolts-containers:wordpress",
     "portMappings": [
       {
         "containerPort": 80,
@@ -107,15 +116,14 @@ resource "aws_ecs_task_definition" "my_task_definition" {
         "value": "wordpress"
       }
     ],
-    "memory": 512,
     "essential": true
   },
   {
     "name": "phpmyadmin",
-    "image": "phpmyadmin/phpmyadmin:latest",
+    "image": "public.ecr.aws/f9b6s3n8/nuts-and-bolts-containers:phpmyadmin",
     "portMappings": [
       {
-        "containerPort": 80,
+        "containerPort": 8080,
         "hostPort": 8080,
         "protocol": "tcp"
       }
@@ -134,13 +142,10 @@ resource "aws_ecs_task_definition" "my_task_definition" {
         "value": "${aws_db_instance.my_rds.password}"
       }
     ],
-    "memory": 512,
     "essential": true
   }
 ]
 DEFINITION
-
-  requires_compatibilities = ["EC2"]
 }
 
 
@@ -150,10 +155,16 @@ resource "aws_ecs_service" "my_ecs_service" {
   cluster         = aws_ecs_cluster.my_ecs_cluster.id
   task_definition = aws_ecs_task_definition.my_task_definition.arn
   desired_count   = 1
-  launch_type     = "EC2"
+  launch_type     = "FARGATE"
 
   deployment_controller {
     type = "ECS"
+  }
+
+  network_configuration {
+    assign_public_ip = "false"
+    subnets          = [aws_subnet.subnet_a.id, aws_subnet.subnet_b.id]
+    security_groups  = [aws_security_group.my_security_group.id]
   }
 
 }
@@ -167,7 +178,7 @@ resource "aws_kms_key" "my_kms_key" {
   }
 }
 
-# Attach Key Policy to KMS Key (optional: modify as needed)
+# Attach Key Policy to KMS Key
 resource "aws_kms_key_policy" "my_kms_key_policy" {
   key_id = aws_kms_key.my_kms_key.key_id
   policy = jsonencode({
