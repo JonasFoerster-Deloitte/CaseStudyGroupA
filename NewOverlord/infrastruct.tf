@@ -5,19 +5,19 @@ provider "aws" {
 
 # Create VPC
 resource "aws_vpc" "my_vpc" {
-  cidr_block = "10.0.0.0/16"  
+  cidr_block = "10.0.0.0/16"
 }
 
 # Create Subnets
 resource "aws_subnet" "subnet_a" {
   vpc_id                  = aws_vpc.my_vpc.id
-  cidr_block              = "10.0.0.0/24"  
+  cidr_block              = "10.0.0.0/24"
   availability_zone       = "eu-central-1a"
 }
 
 resource "aws_subnet" "subnet_b" {
   vpc_id                  = aws_vpc.my_vpc.id
-  cidr_block              = "10.0.1.0/24"  
+  cidr_block              = "10.0.1.0/24"
   availability_zone       = "eu-central-1b"
 }
 
@@ -47,6 +47,13 @@ resource "aws_security_group" "my_security_group" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 # Create DB Subnet Group
@@ -66,8 +73,8 @@ resource "aws_db_instance" "my_rds" {
   username                 = var.database_username
   password                 = var.database_password
   db_subnet_group_name     = aws_db_subnet_group.my_subnet_group.name
-  storage_encrypted        = true  
-  kms_key_id               = aws_kms_key.my_kms_key.arn 
+  storage_encrypted        = true
+  kms_key_id               = aws_kms_key.my_kms_key.arn
 }
 
 # Create ECS Cluster
@@ -84,7 +91,6 @@ resource "aws_ecs_task_definition" "my_task_definition" {
   memory                   = 512 # 512 MB RAM
   task_role_arn            = "arn:aws:iam::238517445739:role/ecsTaskExecutionRole"
   execution_role_arn       = "arn:aws:iam::238517445739:role/ecsTaskExecutionRole"
-
 
   container_definitions    = <<DEFINITION
 [
@@ -172,7 +178,7 @@ resource "aws_ecs_service" "my_ecs_service" {
 # Create KMS Key for RDS Encryption
 resource "aws_kms_key" "my_kms_key" {
   description             = "RDS encryption key"
-  deletion_window_in_days = 30 
+  deletion_window_in_days = 30
   tags = {
     Name = "my-kms-key"
   }
@@ -188,7 +194,7 @@ resource "aws_kms_key_policy" "my_kms_key_policy" {
         Sid       = "Enable IAM User Permissions"
         Effect    = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::238517445739:user/za-pract" 
+          AWS = "arn:aws:iam::238517445739:user/za-pract"
         }
         Action    = "kms:*"
         Resource  = "*"
